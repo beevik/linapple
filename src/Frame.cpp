@@ -389,7 +389,7 @@ void DrawStatusArea (/*HDC passdc,*/ int drawflags)
 							 0, 256);
 //	Uint32 myblack  = SDL_MapRGB(screen->format, 0, 0, 0);	// black color
 //	SDL_SetColorKey(g_hStatusSurface,SDL_SRCCOLORKEY/* | SDL_RLEACCEL*/, myblack);
-							 
+
 	if (drawflags & DRAW_BACKGROUND)
 	{
 /* Code moved to Video.cpp in CreateDIBSections()
@@ -657,14 +657,14 @@ void	FrameDispatchMessage(SDL_Event * e) // process given SDL event
 			}
 			DrawButton((HDC)0,buttondown);*/
 		}
-		else if (mysym == SDLK_KP_PLUS) // Gray + - speed up the emulator!
+		else if (mysym == SDLK_PAGEUP) // Gray + - speed up the emulator!
 		{
 			g_dwSpeed = g_dwSpeed + 2;
 			if(g_dwSpeed > SPEED_MAX) g_dwSpeed = SPEED_MAX; // no Maximum tresspassing!
 			printf("Now speed=%d\n", (int)g_dwSpeed);
 			SetCurrentCLK6502();
 		}
-		else if (mysym == SDLK_KP_MINUS) // Gray + - speed up the emulator!
+		else if (mysym == SDLK_PAGEDOWN) // Gray + - speed up the emulator!
 		{
 			if(g_dwSpeed > SPEED_MIN) g_dwSpeed = g_dwSpeed - 1;// dw is unsigned value!
 			//if(g_dwSpeed <= SPEED_MIN) g_dwSpeed = SPEED_MIN; // no Minimum tresspassing!
