@@ -4,6 +4,8 @@
 #define REGISTRY	"linapple.conf"
 extern FILE * registry;	// our opened file
 
+char * RegGetFilename(int len, char *buffer);
+
 BOOL    RegLoadString (LPCTSTR,LPCTSTR,BOOL,char**,DWORD);
 BOOL    RegLoadValue (LPCTSTR,LPCTSTR,BOOL,DWORD *);
 BOOL	RegLoadBool(LPCTSTR,LPCTSTR,BOOL,BOOL *);
@@ -13,4 +15,3 @@ void    RegSaveValue (LPCTSTR,LPCTSTR,BOOL,DWORD);
 void    RegSaveBool (LPCTSTR,LPCTSTR,BOOL,BOOL);
 
 char	*php_trim(char *c, int len);	// trimming string like PHP function trim does!
-

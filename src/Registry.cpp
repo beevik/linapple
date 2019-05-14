@@ -127,6 +127,14 @@ char *ReadRegString(char *key)
 
 
 //===========================================================================
+char * RegGetFilename(int len, char *buffer) {
+  snprintf(buffer, len, "%s/.config/linapple.conf", getenv("HOME"));
+
+
+	return buffer;
+}
+
+//===========================================================================
 BOOL RegLoadString (LPCTSTR section, LPCTSTR key, BOOL peruser,
                     char** buffer, DWORD chars) {
 
@@ -210,7 +218,9 @@ void RegSaveKeyValue(char * NKey, char * NValue)
 	fseek(tempf, 0, SEEK_SET);
 //	fclose(tempf);
 //	return;
-	registry = fopen(REGISTRY, "w+t");	// erase if been
+	char filename[260];
+	RegGetFilename(260, filename);
+	registry = fopen(filename, "w+t");
 	while(fgets(line, BUFSIZE, tempf)) {
 		fputs(line, registry);
 //		printf("---Saving Line:%s", line);
@@ -224,29 +234,6 @@ void RegSaveKeyValue(char * NKey, char * NValue)
 //===========================================================================
 void RegSaveString (LPCTSTR section, LPCTSTR key, BOOL peruser, LPCTSTR buffer) {
 	RegSaveKeyValue((char*)key, (char*)buffer);
-/*  TCHAR fullkeyname[256];
-  wsprintf(fullkeyname,
-           TEXT("Software\\AppleWin\\CurrentVersion\\%s"),
-           (LPCTSTR)section);
-  HKEY  keyhandle;
-  DWORD disposition;
-  if (!RegCreateKeyEx((peruser ? HKEY_CURRENT_USER : HKEY_LOCAL_MACHINE),
-                      fullkeyname,
-                      0,
-                      NULL,
-                      REG_OPTION_NON_VOLATILE,
-                      KEY_READ | KEY_WRITE,
-                      (LPSECURITY_ATTRIBUTES)NULL,
-                      &keyhandle,
-                      &disposition)) {
-    RegSetValueEx(keyhandle,
-                  key,
-                  0,
-                  REG_SZ,
-                  (CONST BYTE *)buffer,
-                  (_tcslen(buffer)+1)*sizeof(TCHAR));
-    RegCloseKey(keyhandle);
-  }*/
 }
 
 //===========================================================================

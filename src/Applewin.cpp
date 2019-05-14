@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /* Adaptation for SDL and POSIX (l) by beom beotiger, Nov-Dec 2007, krez beotiger March 2012 AD */
 
 #include "stdafx.h"
-//#pragma  hdrstop
 #include "MouseInterface.h"
 
 // for time logging
@@ -54,8 +53,6 @@ static DWORD emulmsec_frac  = 0;
 bool      g_bFullSpeed      = false;
 bool hddenabled = false;
 static bool g_uMouseInSlot4 = false;	// not any mouse in slot4??--bb
-// Win32
-//HINSTANCE g_hInstance          = (HINSTANCE)0;
 
 AppMode_e	g_nAppMode = MODE_LOGO;
 
@@ -66,7 +63,6 @@ UINT g_ScreenHeight = SCREEN_HEIGHT;
 
 //static int lastmode         = MODE_LOGO;		-- not used???
 DWORD     needsprecision    = 0;			// Redundant
-//TCHAR     g_sProgramDir[MAX_PATH] = TEXT("");
 TCHAR     g_sCurrentDir[MAX_PATH] = TEXT(""); // Also Starting Dir for Slot6 disk images?? --bb
 TCHAR     g_sHDDDir[MAX_PATH] = TEXT(""); // starting dir for HDV (Apple][ HDD) images?? --bb
 TCHAR     g_sSaveStateDir[MAX_PATH] = TEXT(""); // starting dir for states --bb
@@ -76,9 +72,6 @@ TCHAR     g_sParallelPrinterFile[MAX_PATH] = TEXT("Printer.txt");	// default fil
 TCHAR     g_sFTPLocalDir[MAX_PATH] = TEXT(""); // FTP Local Dir, see linapple.conf for details
 TCHAR     g_sFTPServer[MAX_PATH] = TEXT(""); // full path to default FTP server
 TCHAR     g_sFTPServerHDD[MAX_PATH] = TEXT(""); // full path to default FTP server
-
-//TCHAR     g_sFTPUser[256] = TEXT("anonymous"); // user name
-//TCHAR     g_sFTPPass[256] = TEXT("mymail@hotmail.com"); // password
 TCHAR     g_sFTPUserPass[512] = TEXT("anonymous:mymail@hotmail.com"); // full login line
 
 bool      g_bResetTiming    = false;			// Redundant
@@ -101,6 +94,7 @@ CMouseInterface		sg_Mouse;
 UINT	g_Slot4 = CT_Mockingboard;	// CT_Mockingboard or CT_MouseInterface
 
 CURL *g_curl = NULL;	// global easy curl resourse
+
 //===========================================================================
 
 // ???? what is DBG_CALC_FREQ???  O_O   --bb
@@ -134,19 +128,14 @@ void ContinueExecution()
 
 	if(g_bFullSpeed)
 	{
-		// Don't call Spkr_Mute() - will get speaker clicks
 		MB_Mute();
 		SysClk_StopTimer();
 		g_nCpuCyclesFeedback = 0;	// For the case when this is a big -ve number
-//		SetPriorityNormal();
 	}
 	else
 	{
-		// Don't call Spkr_Demute()
 		MB_Demute();
 		SysClk_StartTimerUsec(nExecutionPeriodUsec);
-		// Switch to higher priority, eg. for audio (BUG #015394)
-//		SetPriorityAboveNormal();
 	}
 
 	//
@@ -245,7 +234,6 @@ void ContinueExecution()
 #if DBG_CALC_FREQ
 		if(g_nPerfFreq)
 		{
-			//QueryPerformanceCounter((LARGE_INTEGER*)&nTime1); QueryPerformanceFrequency
 			LONG nTime1 = GetTickCount();//no QueryPerformanceCounter and alike
 			LONG nTimeDiff = nTime1 - nTime0;
 			double fTime = (double)nTimeDiff / (double)(LONG)g_nPerfFreq;
@@ -279,7 +267,6 @@ void SetCurrentCLK6502()
 	// SPEED_MAX-1  = 39 = 3.90 MHz
 	// SPEED_MAX    = 40 = ???? MHz (run full-speed, /g_fCurrentCLK6502/ is ignored)
 
-
 	if(g_dwSpeed < SPEED_NORMAL)
 		g_fMHz = 0.5 + (double)g_dwSpeed * 0.05;
 	else
@@ -298,85 +285,50 @@ void SetCurrentCLK6502()
 //===========================================================================
 void EnterMessageLoop ()
 {
-//	MSG message;
 	SDL_Event event;
 
-//	PeekMessage(&message, NULL, 0, 0, PM_NOREMOVE);
-	while(true)
-
-//	while (message.message!=WM_QUIT)
+	while (true)
 	{
-	if(SDL_PollEvent(&event))
-	{
-		if(event.type == SDL_QUIT && event.key.keysym.sym != SDLK_F4) return;
-		FrameDispatchMessage(&event);
-
-
-
-// 		if (PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
-// 		{
-// 			TranslateMessage(&message);
-// 			DispatchMessage(&message);
-
-		while ((g_nAppMode == MODE_RUNNING) || (g_nAppMode == MODE_STEPPING))
+		if (SDL_PollEvent(&event))
 		{
-			if(SDL_PollEvent(&event)) {
-				if(event.type == SDL_QUIT && event.key.keysym.sym != SDLK_F4) return;
-				FrameDispatchMessage(&event);
-			}
-			else if (g_nAppMode == MODE_STEPPING)
+			if (event.type == SDL_QUIT && event.key.keysym.sym != SDLK_F4) return;
+			FrameDispatchMessage(&event);
+
+			while ((g_nAppMode == MODE_RUNNING) || (g_nAppMode == MODE_STEPPING))
 			{
-				DebugContinueStepping();
-			}
-			else
-			{
-				ContinueExecution();
-				if (g_nAppMode != MODE_DEBUG)
+				if (SDL_PollEvent(&event)) {
+					if (event.type == SDL_QUIT && event.key.keysym.sym != SDLK_F4) return;
+					FrameDispatchMessage(&event);
+				}
+				else if (g_nAppMode == MODE_STEPPING)
 				{
-					if (g_bFullSpeed)
-						ContinueExecution();
+					DebugContinueStepping();
+				}
+				else
+				{
+					ContinueExecution();
+					if (g_nAppMode != MODE_DEBUG)
+					{
+						if (g_bFullSpeed)
+							ContinueExecution();
+					}
 				}
 			}
 		}
-	}
-	else
-	{
-		if (g_nAppMode == MODE_DEBUG)
-			DebuggerUpdate();
-		else if (g_nAppMode == MODE_LOGO || g_nAppMode == MODE_PAUSED)
-			SDL_Delay(100);		// Stop process hogging CPU
-	}
+		else
+		{
+			if (g_nAppMode == MODE_DEBUG)
+				DebuggerUpdate();
+			else if (g_nAppMode == MODE_LOGO || g_nAppMode == MODE_PAUSED)
+				SDL_Delay(100);		// Stop process hogging CPU
+		}
 	}
 }
-
-//===========================================================================
-// void GetProgramDirectory () {
-//   GetModuleFileName((HINSTANCE)0,g_sProgramDir,MAX_PATH);
-//   g_sProgramDir[MAX_PATH-1] = 0;
-//   int loop = _tcslen(g_sProgramDir);
-//   while (loop--)
-//     if ((g_sProgramDir[loop] == TEXT('\\')) ||
-//         (g_sProgramDir[loop] == TEXT(':'))) {
-//       g_sProgramDir[loop+1] = 0;
-//       break;
-//     }
-// }
-
 
 //---------------------------------------------------------------------------
 
 int DoDiskInsert(int nDrive, LPSTR szFileName)
 {
-// 	DWORD dwAttributes = GetFileAttributes(szFileName);
-	//
-	//
-// 	if(dwAttributes == INVALID_FILE_ATTRIBUTES)
-// 	{
-// 		return -1;
-// 	}
-	//
-// 	BOOL bWriteProtected = (dwAttributes & FILE_ATTRIBUTE_READONLY) ? TRUE : FALSE;
-
 	return DiskInsert(nDrive, szFileName, 0, 0);
 }
 
@@ -386,14 +338,6 @@ void LoadConfiguration ()
 {
   DWORD dwComputerType;
 
-/*  if (LOAD(TEXT(REGVALUE_APPLE2_TYPE),&dwComputerType))
-  {
-	  if (dwComputerType >= A2TYPE_MAX)
-		dwComputerType = A2TYPE_APPLE2EEHANCED;
-	  g_Apple2Type = (eApple2Type) dwComputerType;
-  }
-  else
-  {*/
   LOAD(TEXT("Computer Emulation"),&dwComputerType);
   switch (dwComputerType)
   {
@@ -404,7 +348,7 @@ void LoadConfiguration ()
 	  case 2:	g_Apple2Type = A2TYPE_APPLE2EEHANCED;break;
 	  default:	g_Apple2Type = A2TYPE_APPLE2EEHANCED;break;
   }
-//  }
+
 // determine Apple type and set appropriate caption -- should be in (F9)switching modes?
   switch (g_Apple2Type)
   {
@@ -429,7 +373,7 @@ void LoadConfiguration ()
 //  printf("Video Emulation = %d\n", videotype);
 
   DWORD dwTmp = 0;	// temp var
-	
+
   LOAD(TEXT("Fullscreen") ,&dwTmp);	// load fullscreen flag
   fullscreen = (BOOL) dwTmp;
   dwTmp = 1;
@@ -437,7 +381,6 @@ void LoadConfiguration ()
   g_ShowLeds = (BOOL) dwTmp;
 
   //printf("Fullscreen = %d\n", fullscreen);
-//  LOAD(TEXT("Uthernet Active")  ,(DWORD *)&tfe_enabled);
 
   SetCurrentCLK6502();	// set up real speed
 
@@ -527,17 +470,6 @@ void LoadConfiguration ()
 	  szHDFilename = NULL;
   }
 
-
-  // for joysticks use default Y-,X-trims
-//   if(LOAD(TEXT(REGVALUE_PDL_XTRIM), &dwTmp))
-//       JoySetTrim((short)dwTmp, true);
-//   if(LOAD(TEXT(REGVALUE_PDL_YTRIM), &dwTmp))
-//       JoySetTrim((short)dwTmp, false);
-// we do not use this, scroll lock ever toggling full-speed???
-//   if(LOAD(TEXT(REGVALUE_SCROLLLOCK_TOGGLE), &dwTmp))
-// 	  g_uScrollLockToggle = dwTmp;
-
-  //
 
   char *szFilename = NULL;
   double scrFactor = 0.0;
@@ -636,228 +568,19 @@ void LoadConfiguration ()
 	  free(szFilename);
 	  szFilename = NULL;
   }
-// Print some debug strings
   printf("Ready login = %s\n",g_sFTPUserPass);
-
-//
-// ****By now we deal without Uthernet interface! --bb****
- //   char szUthernetInt[MAX_PATH] = {0};
-//   RegLoadString(TEXT("Configuration"),TEXT("Uthernet Interface"),1,szUthernetInt,MAX_PATH);
-//   update_tfe_interface(szUthernetInt,NULL);
-
 }
-
-//===========================================================================
-void RegisterExtensions ()
-{ // TO DO: register extensions for KDE or GNOME desktops?? Do not know, if it is sane idea. He-he. --bb
-
-
-// 	TCHAR szCommandTmp[MAX_PATH];
-// 	GetModuleFileName((HMODULE)0,szCommandTmp,MAX_PATH);
-//
-// 	TCHAR command[MAX_PATH];
-// 	wsprintf(command, "\"%s\"",	szCommandTmp);	// Wrap	path & filename	in quotes &	null terminate
-//
-// 	TCHAR icon[MAX_PATH];
-// 	wsprintf(icon,TEXT("%s,1"),(LPCTSTR)command);
-//
-// 	_tcscat(command,TEXT(" \"%1\""));			// Append "%1"
-//
-// 	RegSetValue(HKEY_CLASSES_ROOT,".bin",REG_SZ,"DiskImage",10);
-// 	RegSetValue(HKEY_CLASSES_ROOT,".do"	,REG_SZ,"DiskImage",10);
-// 	RegSetValue(HKEY_CLASSES_ROOT,".dsk",REG_SZ,"DiskImage",10);
-// 	RegSetValue(HKEY_CLASSES_ROOT,".nib",REG_SZ,"DiskImage",10);
-// 	RegSetValue(HKEY_CLASSES_ROOT,".po"	,REG_SZ,"DiskImage",10);
-// //	RegSetValue(HKEY_CLASSES_ROOT,".aws",REG_SZ,"DiskImage",10);	// TO DO
-// //	RegSetValue(HKEY_CLASSES_ROOT,".hdv",REG_SZ,"DiskImage",10);	// TO DO
-//
-// 	RegSetValue(HKEY_CLASSES_ROOT,
-// 				"DiskImage",
-// 				REG_SZ,"Disk Image",21);
-//
-// 	RegSetValue(HKEY_CLASSES_ROOT,
-// 				"DiskImage\\DefaultIcon",
-// 				REG_SZ,icon,_tcslen(icon)+1);
-//
-// 	RegSetValue(HKEY_CLASSES_ROOT,
-// 				"DiskImage\\shell\\open\\command",
-// 				REG_SZ,command,_tcslen(command)+1);
-//
-// 	RegSetValue(HKEY_CLASSES_ROOT,
-// 				"DiskImage\\shell\\open\\ddeexec",
-// 				REG_SZ,"%1",3);
-//
-// 	RegSetValue(HKEY_CLASSES_ROOT,
-// 				"DiskImage\\shell\\open\\ddeexec\\application",
-// 				REG_SZ,"applewin",9);
-//
-// 	RegSetValue(HKEY_CLASSES_ROOT,
-// 				"DiskImage\\shell\\open\\ddeexec\\topic",
-// 				REG_SZ,"system",7);
-}
-
-//===========================================================================
-
-//LPSTR GetNextArg(LPSTR lpCmdLine)
-//{
-	// Sane idea: use getoptlong as command-line parameter preprocessor. Use it at your health. Ha. --bb
-
-/*
-	int bInQuotes = 0;
-
-	while(*lpCmdLine)
-	{
-		if(*lpCmdLine == '\"')
-		{
-			bInQuotes ^= 1;
-			if(!bInQuotes)
-			{
-				*lpCmdLine++ = 0x00;	// Assume end-quote is end of this arg
-				continue;
-			}
-		}
-
-		if((*lpCmdLine == ' ') && !bInQuotes)
-		{
-			*lpCmdLine++ = 0x00;
-			break;
-		}
-
-		lpCmdLine++;
-	}
-
-	return lpCmdLine;
-*/
-//}
-
-//FILE *spMono, *spStereo;
 
 //---------------------------------------------------------------------------
 
 int main(int argc, char * lpCmdLine[])
 {
-//		reading FullScreen and Boot from conf file?
-//	bool bSetFullScreen = false;
-//	bool bBoot = false;
-
-	registry = fopen(REGISTRY, "a+t");	// open conf file (linapple.conf by default)
-//	spMono = fopen("speakersmono.pcm","wb");
-//	spStereo = fopen("speakersstereo.pcm","wb");
-	
-//	LPSTR szImageName_drive1 = NULL; // file names for images of drive1 and drive2
-//	LPSTR szImageName_drive2 = NULL;
-
+	char filename[260];
+	RegGetFilename(260, filename);
+	registry = fopen(filename, "a+t");	// open conf file (linapple.conf by default)
 
 	bool bBenchMark = (argc > 1 &&
 		!strcmp(lpCmdLine[1],"-b"));	// if we should start benchmark (-b in command line string)
-
-// I will remake this using getopt and getoptlong!
-/*
-	while(*lpCmdLine)
-	{
-		LPSTR lpNextArg = GetNextArg(lpCmdLine);
-
-		if(strcmp(lpCmdLine, "-d1") == 0)
-		{
-			lpCmdLine = lpNextArg;
-			lpNextArg = GetNextArg(lpCmdLine);
-			szImageName_drive1 = lpCmdLine;
-			if(*szImageName_drive1 == '\"')
-				szImageName_drive1++;
-		}
-		else if(strcmp(lpCmdLine, "-d2") == 0)
-		{
-			lpCmdLine = lpNextArg;
-			lpNextArg = GetNextArg(lpCmdLine);
-			szImageName_drive2 = lpCmdLine;
-			if(*szImageName_drive2 == '\"')
-				szImageName_drive2++;
-		}
-		else if(strcmp(lpCmdLine, "-f") == 0)
-		{
-			bSetFullScreen = true;
-		}
-		else if((strcmp(lpCmdLine, "-l") == 0) && (g_fh == NULL))
-		{
-			g_fh = fopen("AppleWin.log", "a+t");	// Open log file (append & text g_nAppMode)
-// Start of Unix(tm) specific code
-			struct timeval tv;
-			struct tm * ptm;
-			char time_str[40];
-			gettimeofday(&tv, NULL);
-			ptm = localtime(&tv.tvsec);
-			strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", ptm);
-// end of Unix(tm) specific code
-			fprintf(g_fh,"*** Logging started: %s\n",time_str);
-		}
-		else if(strcmp(lpCmdLine, "-m") == 0)
-		{
-			g_bDisableDirectSound = true; // without direct sound? U-u-u-u-uuuuuuuhhhhhhhhh --bb
-		}
-#ifdef RAMWORKS
-		else if(strcmp(lpCmdLine, "-r") == 0)		// RamWorks size [1..127]
-		{
-			lpCmdLine = lpNextArg;
-			lpNextArg = GetNextArg(lpCmdLine);
-			g_uMaxExPages = atoi(lpCmdLine);
-			if (g_uMaxExPages > 127)
-				g_uMaxExPages = 128;
-			else if (g_uMaxExPages < 1)
-				g_uMaxExPages = 1;
-		}
-#endif
-
-		lpCmdLine = lpNextArg;
-	}
-*/
-
-
-// What is it???? RIFF support for sound saving during emulation in RIFF format.
-	// Currently not used?
-#if 0
-#ifdef RIFF_SPKR
-	RiffInitWriteFile("Spkr.wav", SPKR_SAMPLE_RATE, 1);
-#endif
-#ifdef RIFF_MB
-	RiffInitWriteFile("Mockingboard.wav", 44100, 2);
-#endif
-#endif
-
-	//-----
-
-//     char szPath[_MAX_PATH];
-//
-//     if(0 == GetModuleFileName(NULL, szPath, sizeof(szPath)))
-//     {
-//         strcpy(szPath, __argv[0]);
-//     }
-
-    // Extract application version and store in a global variable
-//     DWORD dwHandle, dwVerInfoSize;
-//
-//     dwVerInfoSize = GetFileVersionInfoSize(szPath, &dwHandle);
-//
-//     if(dwVerInfoSize > 0)
-//     {
-//         char* pVerInfoBlock = new char[dwVerInfoSize];
-//
-//         if(GetFileVersionInfo(szPath, NULL, dwVerInfoSize, pVerInfoBlock))
-//         {
-//             VS_FIXEDFILEINFO* pFixedFileInfo;
-//             UINT pFixedFileInfoLen;
-//
-//             VerQueryValue(pVerInfoBlock, TEXT("\\"), (LPVOID*) &pFixedFileInfo, (PUINT) &pFixedFileInfoLen);
-//
-//             // Construct version string from fixed file info block
-//
-//             unsigned long major     = pFixedFileInfo->dwFileVersionMS >> 16;
-//             unsigned long minor     = pFixedFileInfo->dwFileVersionMS & 0xffff;
-//             unsigned long fix       = pFixedFileInfo->dwFileVersionLS >> 16;
-// 			unsigned long fix_minor = pFixedFileInfo->dwFileVersionLS & 0xffff;
-//
-//             sprintf(VERSIONSTRING, "%d.%d.%d.%d", major, minor, fix, fix_minor);
-//         }
-//     }
 
 #if DBG_CALC_FREQ
 	//QueryPerformanceFrequency((LARGE_INTEGER*)&g_nPerfFreq);
@@ -871,44 +594,24 @@ int main(int argc, char * lpCmdLine[])
 	// . NB. DSInit() is done when g_hFrameWindow is created (WM_CREATE)
 
 	if(InitSDL()) return 1; // init SDL subsystems, set icon
-//	CoInitialize( NULL );   ------- what is it initializing?----------------------------------------
 
-// CURL routines
 	  curl_global_init(CURL_GLOBAL_DEFAULT);
 	  g_curl = curl_easy_init();
 	  if(!g_curl) {
 		printf("Could not initialize CURL easy interface");
 		return 1;
 	  }
-    	/* Set user name and password to access FTP server */ 
+    	/* Set user name and password to access FTP server */
 	  curl_easy_setopt(g_curl, CURLOPT_USERPWD, g_sFTPUserPass);
 //
 // just do not see why we need this timer???
 	/*bool bSysClkOK =*/ SysClk_InitTimer();
 
 	// DO ONE-TIME INITIALIZATION
-//	g_hInstance = passinstance;
 	MemPreInitialize();		// Call before any of the slot devices are initialized
-//	GdiSetBatchLimit(512);
-//	GetProgramDirectory();
-//	RegisterExtensions();
-//	FrameRegisterClass();
 	ImageInitialize();
 	DiskInitialize();
 	CreateColorMixMap();	// For tv emulation g_nAppMode
-
-// 	int nError = 0;
-// 	if(szImageName_drive1)
-// 	{
-// 		nError = DoDiskInsert(0, szImageName_drive1);
-// 		bBoot = true;
-// 	}
-// 	if(szImageName_drive2)
-// 	{
-// 		nError |= DoDiskInsert(1, szImageName_drive2);
-// 	}
-
-	//
 
 	do
 	{
@@ -933,30 +636,8 @@ int main(int argc, char * lpCmdLine[])
 		VideoInitialize();
 
 
-// 		if (!bSysClkOK)
-// 		{
-// 			MessageBox(g_hFrameWindow, "DirectX failed to create SystemClock instance", TEXT("AppleWin Error"), MB_OK);
-// 			PostMessage(g_hFrameWindow, WM_DESTROY, 0, 0);	// Close everything down
-// 		}
+       	Snapshot_Startup();		// Do this after everything has been init'ed
 
-//		tfe_init();
-        	Snapshot_Startup();		// Do this after everything has been init'ed
-
-
-/*  ------Will be fullscreened and booted later. I promise. --bb          */
-// 		if(bSetFullScreen)
-// 		{
-// 			PostMessage(g_hFrameWindow, WM_KEYDOWN, VK_F1+BTN_FULLSCR, 0);
-// 			PostMessage(g_hFrameWindow, WM_KEYUP,   VK_F1+BTN_FULLSCR, 0);
-// 			bSetFullScreen = false;
-// 		}
-//
-// 		if(bBoot)
-// 		{
-// 			PostMessage(g_hFrameWindow, WM_KEYDOWN, VK_F1+BTN_RUN, 0);
-// 			PostMessage(g_hFrameWindow, WM_KEYUP,   VK_F1+BTN_RUN, 0);
-// 			bBoot = false;
-// 		}
 
 		JoyReset();
 		SetUsingCursor(0);
@@ -967,12 +648,9 @@ int main(int argc, char * lpCmdLine[])
 
 		DrawFrameWindow();	// we do not have WM_PAINT?
 
-
 		// ENTER THE MAIN MESSAGE LOOP
 		if(bBenchMark) VideoBenchmark(); // start VideoBenchmark and exit
 			else EnterMessageLoop();	// else we just start game
-// on WM_DESTROY event:
-
 
 		Snapshot_Shutdown();
 		DebugDestroy();
@@ -1007,11 +685,8 @@ int main(int argc, char * lpCmdLine[])
 	// Release COM
 	DSUninit();
 	SysClk_UninitTimer();
-//	CoUninitialize();------------------------------- what is it uninitializing?--------------------------
 
-//	tfe_shutdown();
-
-	if(g_fh)
+	if (g_fh)
 	{
 		fprintf(g_fh,"*** Logging ended\n\n");
 		fclose(g_fh);
@@ -1019,14 +694,11 @@ int main(int argc, char * lpCmdLine[])
 
 	RiffFinishWriteFile();
 	fclose(registry);		//close conf file (linapple.conf by default)
-//	fclose(spMono);
-//	fclose(spStereo);
-	
+
 	SDL_Quit();
-// CURL routines
 	curl_easy_cleanup(g_curl);
 	curl_global_cleanup();
-//
+
 	printf("Linapple: successfully exited!\n");
 	return 0;
 }
